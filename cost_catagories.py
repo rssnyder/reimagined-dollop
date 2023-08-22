@@ -45,7 +45,8 @@ if __name__ == "__main__":
     print(domains.update())
     domains_uuid = domains.get_cc().get("uuid")
 
-    print("bu->domain mappings:", str(bus))
+    for bu in bus:
+        print(f"{bu}: {bus[bu]}")
 
     bu_buckets = []
     for bu in bus:

@@ -2,12 +2,14 @@ from csv import reader
 from os import getenv
 from sys import argv
 from time import sleep
+import json
+
+from requests import put
 
 from common import CloudAccount, CostCatagory
 
 
 if __name__ == "__main__":
-
     # program arguments
     if len(argv) < 4:
         print(f"usage: {argv[0]} [domain cc name] [bu cc name] [csv]")
@@ -19,7 +21,8 @@ if __name__ == "__main__":
 
     # storage for different clouds
     domains = CostCatagory(domain_cc_name)
-    bus = CostCatagory(bu_cc_name)
+    bus_obj = CostCatagory(bu_cc_name)
+    bus = {}
 
     # loop through file and pull in account information
     for file_csv in files:
@@ -28,22 +31,68 @@ if __name__ == "__main__":
             next(datareader)
 
             for row in datareader:
-
                 # create instance of account with given data
                 account = CloudAccount("gcp", row[0], row[1], row[2])
 
+                # build bu->domain relationships
+                if account.bu in bus:
+                    bus[account.bu].add(account.domain)
+                else:
+                    bus[account.bu] = set([account.domain])
+
                 domains.add(account.domain, account)
-                bus.add(account.bu, account)
 
     print(domains.update())
-    print(bus.update())
+    domains_uuid = domains.get_cc().get("uuid")
 
-    sleep(5)
+    print("bu->domain mappings:", str(bus))
 
-    print("Here is what we did...")
+    bu_buckets = []
+    for bu in bus:
+        bu_buckets.append(
+            {
+                "name": bu,
+                "rules": [
+                    {
+                        "viewConditions": [
+                            {
+                                "type": "VIEW_ID_CONDITION",
+                                "viewField": {
+                                    "fieldId": domains.get_cc().get("uuid"),
+                                    "fieldName": domains.name,
+                                    "identifierName": "Cost Categories",
+                                    "identifier": "BUSINESS_MAPPING",
+                                },
+                                "viewOperator": "IN",
+                                "values": list(bus[bu]),
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
 
-    sleep(5)
+    payload = {
+        "accountId": getenv("HARNESS_ACCOUNT_ID"),
+        "name": bu_cc_name,
+        "uuid": bus_obj.get_cc().get("uuid"),
+        "costTargets": bu_buckets,
+        "sharedCosts": [],
+        "unallocatedCost": {"label": "Unattributed", "strategy": "DISPLAY_NAME"},
+    }
 
-    print(domains)
-    print()
-    print(bus)
+    resp = put(
+        "https://app.harness.io/gateway/ccm/api/business-mapping",
+        params={
+            "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+        },
+        headers={
+            "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
+        },
+        json=payload,
+    )
+
+    if resp.status_code == 200:
+        print(resp.json())
+    else:
+        print(resp.text)

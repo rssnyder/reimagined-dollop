@@ -59,11 +59,13 @@ def get_clusters(credentials, project_id: str):
     return clusters.clusters
 
 
-def get_connectors(kind: str):
+def get_connectors(kind: str, pageIndex: int = 0):
     resp = post(
         "https://app.harness.io/gateway/ng/api/connectors/listV2",
         params={
             "accountIdentifier": getenv("HARNESS_ACCOUNT_ID"),
+            "pageSize": 50,
+            "pageIndex": pageIndex,
         },
         headers={
             "x-api-key": getenv("HARNESS_PLATFORM_API_KEY"),
@@ -71,11 +73,17 @@ def get_connectors(kind: str):
         json={"types": [kind], "filterType": "Connector"},
     )
 
+    connectors = []
     if resp.status_code == 200:
-        return resp.json().get("data", {}).get("content", [])
+        connectors += resp.json().get("data", {}).get("content", [])
+
+        if resp.json().get("data", {}).get("totalPages") > pageIndex:
+            connectors += get_connectors(kind, pageIndex + 1)
     else:
         print(resp.text)
         return []
+
+    return connectors
 
 
 def find_matches(connectors: list, clusters: list):
@@ -83,9 +91,9 @@ def find_matches(connectors: list, clusters: list):
         matches = [
             x
             for x in clusters
-            if connector.replace("_", "").startswith(
-                x.replace("_", "").replace("-", "")
-            )
+            if connector.replace("_", "")
+            .replace("-", "")
+            .startswith(x.replace("_", "").replace("-", ""))
         ]
         if matches:
             print(f"{connector}: {str(matches)}")

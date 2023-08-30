@@ -20,3 +20,11 @@ create cost catagories in harness based on csvs for each cloud
 usage: `python3 cost_catagories.py <domain cost center name> <bu cost center name> [csv]`
 
 example: `python3 cost_catagories.py "My Domains" "My BUs" projects.csv`
+
+# get_clusters.py
+
+get all gke clusters in a gcp organization
+
+requires a gcp org id
+
+usage: `GCP_ORG_ID=862299901433 python3 get_clusters.py`

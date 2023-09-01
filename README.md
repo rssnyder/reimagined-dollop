@@ -27,4 +27,4 @@ get all gke clusters in a gcp organization
 
 requires a gcp org id
 
-usage: `GCP_ORG_ID=862299901433 python3 get_clusters.py`
+usage: `GCP_ORG_ID=862299901433 python3 get_clusters.py [Cluster BU CC Name] [project->bu csv file]`

@@ -105,7 +105,7 @@ def find_matches(connectors: list, clusters: list):
             print("!! multiple clusters found for", connector)
         else:
             cluster = matches.pop()
-            print(f"{connector}:\t\t{str(cluster)}")
+            # print(f"{connector}:\t\t{str(cluster)}")
             results.append(Cluster(cluster[0], connector, cluster[1]))
 
     return results

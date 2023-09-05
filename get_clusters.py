@@ -93,11 +93,10 @@ def find_matches(connectors: list, clusters: list):
 
     for connector in connectors:
         matches = [
-            x
-            for x in clusters
-            if connector.replace("_", "")
-            .replace("-", "")
-            .startswith(x[0].replace("_", "").replace("-", ""))
+            cluster
+            for cluster in clusters
+            if cluster[0].replace("_", "").replace("-", "")
+            in connector.replace("_", "").replace("-", "")
         ]
 
         if not matches:
